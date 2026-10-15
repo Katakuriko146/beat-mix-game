@@ -1,0 +1,483 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#111629">
+<title>BEAT MIX 15 — リズムミニゲーム</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#101528;color:#fff;font-family:system-ui,-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;touch-action:manipulation}body{background:radial-gradient(circle at 50% 10%,#30315d 0,#101528 65%)}main{max-width:560px;margin:auto;padding:16px 16px 38px}.top{display:flex;justify-content:space-between;align-items:center}.logo{font-weight:950;letter-spacing:.17em;color:#ffdc72}.hud{display:flex;gap:10px;margin:18px 0 12px}.hud>div{flex:1;background:#ffffff12;border:1px solid #ffffff20;border-radius:15px;padding:11px;text-align:center}.hud small{display:block;color:#b9c0e4;font-size:11px}.hud strong{display:block;font-size:22px;margin-top:2px}.hearts{color:#ff6c91;letter-spacing:4px}.stage{position:relative;overflow:hidden;border:2px solid #6b6eaf;border-radius:24px;background:#1b2040;box-shadow:0 18px 45px #0007;min-height:390px}canvas{display:block;width:100%;height:auto;touch-action:none}.overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#101629eb;padding:22px;text-align:center}.overlay.hidden{display:none}.dialog{width:100%;max-width:380px}.dialog h1{font-size:35px;margin:8px 0;line-height:1.1}.dialog p{line-height:1.75;color:#d2d5f0;font-size:14px}.btn{border:0;background:#ffcf62;color:#25213a;border-radius:14px;padding:16px 22px;font-weight:900;font-size:18px;min-height:56px;width:100%;cursor:pointer}.btn:active{transform:scale(.98)}.tag{font-size:12px;color:#ffe29c;letter-spacing:3px;font-weight:900}.instruction{text-align:center;background:#ffffff14;border-radius:15px;padding:14px 12px;margin:12px 0;font-size:16px;font-weight:850;min-height:53px}.guide{font-size:12px;line-height:1.7;color:#bdc6e8;text-align:center}.controls{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:12px 0}.control{border:1px solid #ffffff3a;background:#ffffff17;color:white;padding:11px 6px;border-radius:14px;font-size:14px;font-weight:800;min-height:56px;touch-action:none}.control:active{background:#ffffff4d}.control.tap{grid-column:1/-1;background:#ffffff24;font-size:16px}.foot{color:#aab2d7;font-size:12px;text-align:center;line-height:1.7}.result{font-size:54px;font-weight:950;color:#ffdc72}.meter{height:9px;background:#ffffff22;border-radius:9px;overflow:hidden;margin:10px 0}.meter i{display:block;height:100%;width:0;background:#ffcf62;transition:width .08s}#sound{background:none;border:1px solid #ffffff50;color:white;border-radius:12px;padding:7px 10px;font-size:12px}
+</style>
+</head>
+<body>
+<main>
+  <div class="top"><div class="logo">♪ BEAT MIX 15</div><button id="sound">🔊 音あり</button></div>
+  <div class="hud">
+    <div><small>ライフ</small><strong id="hearts" class="hearts">♥♥</strong></div>
+    <div><small>スコア</small><strong id="score">0</strong></div>
+    <div><small>コンボ</small><strong id="combo">0</strong></div>
+  </div>
+  <div class="stage">
+    <canvas id="cv" width="520" height="460"></canvas>
+    <div class="overlay" id="overlay"><div class="dialog" id="modal">
+      <div class="tag">15 RANDOM RHYTHM GAMES</div>
+      <h1>BEAT MIX 15!</h1>
+      <p>音楽に合わせて15種類のミニゲームがランダムに登場。<br>0〜10,000点は<strong>BPM108・低速モード</strong>。10,000点を超えるとカウントダウン後に<strong>BPM216・高速モード</strong>へ！<br>ライフは<strong>2つ</strong>。ミスすると1つ減り、0でゲームオーバー。</p>
+      <button class="btn" id="start">▶ ゲームスタート</button>
+      <p style="font-size:12px">音が鳴ります。iPhoneの音量を確認してください。</p>
+    </div></div>
+  </div>
+  <div class="instruction" id="instruction">スタートしてリズムに乗ろう！</div>
+  <div class="meter"><i id="meter"></i></div>
+  <div class="controls">
+    <button class="control tap" id="tap">👆 タップ</button>
+    <button class="control" data-action="left">⬅ 左</button>
+    <button class="control" data-action="up">⬆ 上</button>
+    <button class="control" data-action="right">右 ➡</button>
+    <button class="control" data-action="down" style="grid-column:2">⬇ 下</button>
+  </div>
+  <p class="guide">ゲーム画面を直接タップ・スワイプしても遊べます。下のボタンは操作補助です。<br>🎬 15種類すべて専用アニメーション／🎵 216 BPM・0〜10,000点：BPM108低速 → 10,000点突破後：BPM216高速</p>
+  <p class="foot">15種類：もぐもぐモンスター／ハンマー工房／宇宙キャッチ／ダンスステップ／忍者の修行／サムライ斬り／DJスクラッチ／ロケット発射／もぐらたたき／バスケシュート／雨よけパラソル／魔法の杖／サーフジャンプ／落ち葉キャッチ／太鼓フィニッシュ</p>
+</main>
+<audio id="bgmSlow" src="beat_mix_bgm_108bpm_kids_chorus_loop.mp3" preload="auto" loop playsinline></audio>
+<audio id="bgmFast" src="beat_mix_bgm_216bpm_6melodies_lowbass_loop.mp3" preload="auto" loop playsinline></audio>
+<script>
+(()=>{'use strict';
+const $=id=>document.getElementById(id),cv=$('cv'),ctx=cv.getContext('2d'),overlay=$('overlay'),bgmSlow=$('bgmSlow'),bgmFast=$('bgmFast');
+const BPM_SLOW=108,BPM_FAST=216;
+let currentBpm=BPM_SLOW,musicBeat=60/currentBpm,beat=120/currentBpm,countInUnits=2,activeBgm=bgmSlow,phase='slow';
+const types=[
+{name:'もぐもぐモンスター',icon:'😋',action:'tap',cue:'ごはんをパクッ！',color:'#f7a755'},
+{name:'ハンマー工房',icon:'🔨',action:'tap',cue:'釘をトン！',color:'#88dcff'},
+{name:'宇宙キャッチ',icon:'🪐',action:'tap',cue:'星をキャッチ！',color:'#bda0ff'},
+{name:'ダンスステップ',icon:'💃',action:'left',cue:'左へステップ！',color:'#ff8fb1'},
+{name:'忍者の修行',icon:'🥷',action:'right',cue:'右へ瞬身！',color:'#99eea4'},
+{name:'サムライ斬り',icon:'⚔️',action:'right',cue:'右へ一閃！',color:'#f19a8a'},
+{name:'DJスクラッチ',icon:'🎧',action:'left',cue:'左へスクラッチ！',color:'#79d2ff'},
+{name:'ロケット発射',icon:'🚀',action:'up',cue:'上へ発射！',color:'#8ba7ff'},
+{name:'もぐらたたき',icon:'🐹',action:'tap',cue:'出た！たたけ！',color:'#c8a06a'},
+{name:'バスケシュート',icon:'🏀',action:'up',cue:'上へシュート！',color:'#ff9b55'},
+{name:'雨よけパラソル',icon:'☂️',action:'down',cue:'下へ開け！',color:'#6eb9e9'},
+{name:'魔法の杖',icon:'🪄',action:'right',cue:'右へ魔法！',color:'#d69cff'},
+{name:'サーフジャンプ',icon:'🏄',action:'up',cue:'波を飛び越せ！',color:'#5bc7c8'},
+{name:'落ち葉キャッチ',icon:'🍁',action:'down',cue:'下でキャッチ！',color:'#e79258'},
+{name:'太鼓フィニッシュ',icon:'🥁',action:'tap',cue:'ドン！',color:'#ef6d6d'}
+];
+let audio=null,master=null,soundOn=true,started=false,finished=false,transitioning=false,lives=2,score=0,combo=0,round=0,task=null,nextTask=null,lastType=-1,feedback='',feedbackUntil=0,startAt=0,beatPlayed=-1,raf=0,beginX=null,beginY=null,bgmOffset=0,bgmLast=0,transitionToken=0;
+function initAudio(){
+  try{
+    [bgmSlow,bgmFast].forEach(a=>{a.volume=.72;a.muted=!soundOn});
+    if(soundOn){
+      audio=audio||new(window.AudioContext||window.webkitAudioContext)();
+      if(audio.state==='suspended')audio.resume();
+      if(!master){master=audio.createGain();master.gain.value=.22;master.connect(audio.destination)}
+    }
+  }catch(e){
+    soundOn=false;
+    bgmSlow.muted=bgmFast.muted=true;
+    $('sound').textContent='🔇 音なし'
+  }
+}
+function setTempo(bpm){
+  currentBpm=bpm;
+  musicBeat=60/currentBpm;     // actual quarter-note duration
+  beat=120/currentBpm;        // gameplay half-note unit
+}
+function pauseBgms(){
+  try{bgmSlow.pause()}catch(e){}
+  try{bgmFast.pause()}catch(e){}
+}
+function resetClock(){
+  bgmOffset=0;bgmLast=0;beatPlayed=-1;
+  startAt=performance.now()/1000;
+}
+function playActiveFromStart(){
+  pauseBgms();
+  try{
+    activeBgm.currentTime=0;
+    activeBgm.muted=!soundOn;
+    const p=activeBgm.play();
+    if(p&&p.catch)p.catch(()=>{});
+  }catch(e){}
+  resetClock();
+}
+function unlockFastAudio(){
+  // iOS/Safari: unlock the second audio element while still inside the user's start gesture.
+  try{
+    const wasMuted=bgmFast.muted;
+    bgmFast.muted=true;
+    const p=bgmFast.play();
+    if(p&&p.then){
+      p.then(()=>{bgmFast.pause();bgmFast.currentTime=0;bgmFast.muted=wasMuted}).catch(()=>{});
+    }else{
+      bgmFast.pause();bgmFast.currentTime=0;bgmFast.muted=wasMuted;
+    }
+  }catch(e){}
+}
+function tone(freq,duration,kind='sine',vol=.12,delay=0){if(!audio||!soundOn||!master)return;try{const t=audio.currentTime+delay,o=audio.createOscillator(),g=audio.createGain();o.type=kind;o.frequency.setValueAtTime(freq,t);g.gain.setValueAtTime(.001,t);g.gain.exponentialRampToValueAtTime(Math.max(.002,vol),t+.012);g.gain.exponentialRampToValueAtTime(.001,t+duration);o.connect(g);g.connect(master);o.start(t);o.stop(t+duration+.02)}catch(e){}}
+function drum(n){tone(n%4===0?110:n%2===0?165:450,n%2===0?.13:.055,n%2===0?'triangle':'square',n%2===0?.3:.07);if(n%4===0)tone(220,.16,'sine',.09);const notes=[330,392,440,392,294,349,440,523];tone(notes[Math.floor(n/2)%8],.13,'triangle',.045)}
+function musicElapsed(){
+  if(activeBgm&&!activeBgm.paused&&Number.isFinite(activeBgm.currentTime)){
+    const t=activeBgm.currentTime;
+    if(t<bgmLast-1){
+      const d=Number.isFinite(activeBgm.duration)&&activeBgm.duration>1?activeBgm.duration:62.222222;
+      bgmOffset+=d;
+    }
+    bgmLast=t;
+    return bgmOffset+t;
+  }
+  return performance.now()/1000-startAt;
+}
+function choose(){let k;do{k=Math.floor(Math.random()*types.length)}while(k===lastType);lastType=k;return {...types[k]}}
+function updateHud(){$('hearts').textContent='♥'.repeat(lives)+'♡'.repeat(2-lives);$('score').textContent=score;$('combo').textContent=combo}
+function begin(){
+  transitionToken++;
+  initAudio();
+  unlockFastAudio();
+  started=true;finished=false;transitioning=false;
+  lives=2;score=0;combo=0;round=0;lastType=-1;task=null;nextTask=choose();feedback='';
+  phase='slow';activeBgm=bgmSlow;setTempo(BPM_SLOW);countInUnits=2;
+  playActiveFromStart();
+  updateHud();
+  overlay.classList.add('hidden');
+  $('instruction').textContent='BPM108｜まずはゆっくり。10,000点を目指そう！';
+  cancelAnimationFrame(raf);
+  raf=requestAnimationFrame(loop)
+}
+function newTask(n){round=n;task={...nextTask,target:countInUnits+1+2*n,done:false,result:null};nextTask=choose();$('instruction').textContent=task.name+'：'+task.cue}
+function judge(ok,delta){
+  if(!task||task.done||finished||transitioning)return;
+  task.done=true;task.result=ok?'hit':'miss';
+  if(ok){
+    const perfect=delta<=.11,pts=(perfect?150:100)+Math.min(combo,20)*10;
+    score+=pts;combo++;
+    feedback=perfect?'PERFECT! +'+pts:'GOOD! +'+pts;
+    tone(perfect?880:660,.14,'sine',.22);
+    setTimeout(()=>tone(1100,.1,'sine',.1),75)
+  }else{
+    lives--;combo=0;feedback='MISS!  ライフ −1';
+    tone(160,.28,'sawtooth',.15)
+  }
+  feedbackUntil=performance.now()/1000+.58;
+  updateHud();
+
+  if(ok&&phase==='slow'&&score>10000){
+    startSpeedTransition();
+    return;
+  }
+
+  if(lives<=0){finished=true;setTimeout(end,550)}
+}
+
+function startSpeedTransition(){
+  if(transitioning||phase!=='slow'||finished)return;
+  transitioning=true;
+  cancelAnimationFrame(raf);
+  try{bgmSlow.pause()}catch(e){}
+  task=null;feedback='';
+  $('instruction').textContent='10,000点突破！ SPEED UP！';
+  const token=++transitionToken;
+
+  $('modal').innerHTML=
+    '<div class="tag">SPEED UP!</div>'+
+    '<h1 style="font-size:38px">10,000点突破！</h1>'+
+    '<p>ここからゲームスピードが2倍。<br><strong>BPM 108 → 216</strong></p>'+
+    '<div id="speedCount" class="result" style="font-size:76px">★</div>'+
+    '<p id="speedText" style="font-weight:900;color:#ffdc72">高速モードへ！</p>';
+  overlay.classList.remove('hidden');
+
+  tone(660,.16,'sine',.22);
+  setTimeout(()=>tone(880,.16,'sine',.20),100);
+  setTimeout(()=>tone(1100,.22,'sine',.18),200);
+
+  const countEl=()=>document.getElementById('speedCount');
+  const textEl=()=>document.getElementById('speedText');
+
+  function countdown(n){
+    if(token!==transitionToken||finished)return;
+    if(n<=0){
+      enterFastMode();
+      return;
+    }
+    const ce=countEl(),te=textEl();
+    if(ce)ce.textContent=String(n);
+    if(te)te.textContent='BPM216まで…';
+    tone(n===1?980:620,.09,'square',n===1?.18:.11);
+    setTimeout(()=>countdown(n-1),560);
+  }
+
+  setTimeout(()=>countdown(4),950);
+}
+
+function enterFastMode(){
+  phase='fast';
+  setTempo(BPM_FAST);
+  countInUnits=0;              // the 4→3→2→1 transition already served as the count-in
+  activeBgm=bgmFast;
+  task=null;nextTask=choose();round=0;feedback='';
+  playActiveFromStart();
+  transitioning=false;
+  overlay.classList.add('hidden');
+  $('instruction').textContent='BPM216｜高速モード！';
+  tone(1320,.16,'square',.16);
+  raf=requestAnimationFrame(loop);
+}
+
+function end(){if(!finished)return;transitionToken++;transitioning=false;cancelAnimationFrame(raf);pauseBgms();$('modal').innerHTML='<div class="tag">GAME OVER</div><h1>おつかれさま！</h1><div class="result">'+score.toLocaleString()+'</div><p>スコア：'+score.toLocaleString()+'点<br>コンボ最高記録に挑戦しよう。<br>15種類のゲームは毎回ランダムです。</p><button class="btn" id="restart">↻ もう一度遊ぶ</button>';$('restart').onclick=begin;overlay.classList.remove('hidden');$('instruction').textContent='ゲームオーバー'}
+function act(action){if(!started||finished||transitioning||!task||task.done)return;const now=performance.now()/1000,elapsed=musicElapsed(),target=task.target*beat,delta=Math.abs(elapsed-target);if(elapsed<target-.26){feedback='まだ早い！ NOW!を待とう';feedbackUntil=now+.4;return}if(delta>.26){judge(false,delta);return}judge(action===task.action,delta)}
+function pointerDown(e){if(!started||finished||transitioning)return;beginX=e.clientX;beginY=e.clientY;try{cv.setPointerCapture(e.pointerId)}catch(err){}}
+function pointerUp(e){if(beginX===null)return;const dx=e.clientX-beginX,dy=e.clientY-beginY;beginX=null;beginY=null;const ax=Math.abs(dx),ay=Math.abs(dy);if(Math.max(ax,ay)>38){if(ax>ay*1.08)act(dx<0?'left':'right');else if(ay>ax*1.08)act(dy<0?'up':'down');else act('tap')}else act('tap')}
+cv.addEventListener('pointerdown',pointerDown);cv.addEventListener('pointerup',pointerUp);cv.addEventListener('pointercancel',()=>{beginX=null;beginY=null});
+$('tap').addEventListener('pointerdown',e=>{e.preventDefault();act('tap')});
+document.querySelectorAll('[data-action]').forEach(b=>b.addEventListener('pointerdown',e=>{e.preventDefault();act(b.dataset.action)}));
+document.addEventListener('keydown',e=>{if(e.repeat)return;if(e.key===' '||e.key==='Enter')act('tap');if(e.key==='ArrowLeft')act('left');if(e.key==='ArrowRight')act('right');if(e.key==='ArrowUp')act('up');if(e.key==='ArrowDown')act('down')});
+$('sound').onclick=()=>{
+  soundOn=!soundOn;
+  $('sound').textContent=soundOn?'🔊 音あり':'🔇 音なし';
+  bgmSlow.muted=bgmFast.muted=!soundOn;
+  if(soundOn)initAudio();
+};
+$('start').onclick=begin;
+function rr(x,y,w,h,r,fill){ctx.fillStyle=fill;ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fill()}
+function actionLabel(action){return action==='tap'?'👆 タップ！':action==='left'?'⬅ 左スワイプ！':action==='right'?'右スワイプ！ ➡':action==='up'?'⬆ 上スワイプ！':'⬇ 下スワイプ！'}
+
+function clamp(v,a=0,b=1){return Math.max(a,Math.min(b,v))}
+function lerp(a,b,t){return a+(b-a)*t}
+function circle(x,y,r,fill,stroke=null,lw=2){ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fillStyle=fill;ctx.fill();if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=lw;ctx.stroke()}}
+function line(x1,y1,x2,y2,color='#fff',lw=4){ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.strokeStyle=color;ctx.lineWidth=lw;ctx.lineCap='round';ctx.stroke()}
+function txt(s,x,y,size=24,color='#fff',align='center',weight='700'){ctx.font=weight+' '+size+'px system-ui';ctx.fillStyle=color;ctx.textAlign=align;ctx.fillText(s,x,y)}
+function emo(s,x,y,size=70,rot=0,alpha=1){ctx.save();ctx.translate(x,y);ctx.rotate(rot);ctx.globalAlpha=alpha;ctx.textAlign='center';ctx.font=size+'px system-ui';ctx.fillText(s,0,size*.34);ctx.restore();ctx.globalAlpha=1}
+function spark(x,y,t,color='#ffdf72'){for(let i=0;i<8;i++){const a=i*Math.PI/4+t*.8,r=15+34*clamp(t);line(x+Math.cos(a)*r*.45,y+Math.sin(a)*r*.45,x+Math.cos(a)*r,y+Math.sin(a)*r,color,3)}}
+function commonBg(task,n,pulse){
+  const w=520,h=460,g=ctx.createLinearGradient(0,0,w,h);
+  g.addColorStop(0,task?task.color:'#7777bb');g.addColorStop(1,'#11172f');
+  ctx.fillStyle=g;ctx.fillRect(0,0,w,h);ctx.fillStyle='#11172fb8';ctx.fillRect(0,0,w,h);
+  for(let i=0;i<14;i++){const x=(i*97+Math.sin(n*.22+i)*32)%560,y=(i*67+Math.cos(n*.18+i)*25)%460;circle(x,y,2+(i%3)+pulse*3,'#ffffff16')}
+  rr(18,16,484,42,13,'#ffffff1c');txt(task?task.name:'READY? COUNT IN',260,44,17,'#fff','center','800')
+}
+function cueFooter(task,elapsed,n,pulse){
+  if(!task)return;
+  const remaining=task.target*beat-elapsed;
+  const nowWindow=Math.abs(remaining)<=.26;
+  const label=task.done?(task.result==='hit'?'✓ SUCCESS':'× MISS'):(nowWindow?'NOW!':actionLabel(task.action));
+  txt(label,260,387,nowWindow?36:22,nowWindow?'#ffdf70':task.done&&task.result==='miss'?'#ff91aa':'#fff','center','900');
+  const prog=clamp(1-Math.abs(remaining)/beat);
+  rr(70,406,380,10,6,'#ffffff2f');rr(70,406,380*prog,10,6,nowWindow?'#ffdf70':'#ffffffa8');
+  for(let i=0;i<4;i++){const active=Math.floor(n)%4===i;circle(182+i*52,438,active?11+pulse*4:8,active?'#ffdc72':'#ffffff42')}
+}
+function sceneMonster(local,post,hit,pulse){
+  // 1. もぐもぐモンスター
+  rr(46,95,428,225,28,'#40254eaa');
+  const munch=hit?Math.abs(Math.sin(post*Math.PI*5))*10:0;
+  emo('😋',300,220-munch,128,0,1);
+  const fx=lerp(105,260,clamp(local));
+  const fy=165+Math.sin(clamp(local)*Math.PI)*-45;
+  if(!hit||post<.12)emo('🍔',fx,fy,58,local*.15);
+  if(hit&&post>.05){txt('YUM!',300,104,32,'#ffdf72');for(let i=0;i<6;i++)emo('✨',205+i*35,150+Math.sin(i)*18,22,0,clamp(1-post))}
+  txt('食べ物が口に来たらタップ！',260,342,18,'#fff');
+}
+function sceneHammer(local,post,hit,pulse){
+  // 2. ハンマー工房
+  rr(45,275,430,45,10,'#815b3c');rr(95,310,25,55,7,'#5e422d');rr(400,310,25,55,7,'#5e422d');
+  rr(247,212,26,70,5,'#aeb6bf');circle(260,205,18,'#d7dde3');
+  const ang=hit?lerp(-1.0,.35,clamp(post*2)):lerp(-1.15,-.55,clamp(local));
+  ctx.save();ctx.translate(190,175);ctx.rotate(ang);rr(-9,-6,125,17,8,'#7c5137');rr(99,-28,58,55,10,'#c2c8d0');ctx.restore();
+  if(hit&&post>.2)spark(260,205,post,'#ffe07e');
+  txt('釘の頭でタップ！',260,342,18,'#fff');
+}
+function sceneSpace(local,post,hit,pulse){
+  // 3. 宇宙キャッチ
+  for(let i=0;i<24;i++)circle((i*83)%520,(i*47)%280,1+(i%3),i%4===0?'#ffea99':'#ffffffaa');
+  emo('🧑‍🚀',260,287,88);
+  const y=hit?275:lerp(85,245,clamp(local));
+  const scale=1+.18*Math.sin(local*Math.PI*2);
+  ctx.save();ctx.translate(260,y);ctx.scale(scale,scale);emo('⭐',0,0,58,local*.2);ctx.restore();
+  if(hit){spark(260,245,post,'#9ff3ff');txt('CATCH!',260,115,30,'#9ff3ff')}
+  txt('星が手元に来たらタップ！',260,342,18,'#fff');
+}
+function sceneDance(local,post,hit,pulse){
+  // 4. ダンスステップ
+  ctx.fillStyle='#ffffff14';ctx.beginPath();ctx.ellipse(260,305,155,42,0,0,Math.PI*2);ctx.fill();
+  const step=hit?lerp(0,-90,Math.sin(clamp(post)*Math.PI/2)):0;
+  emo('💃',290+step,210,120,hit?-.18*post:Math.sin(local*8)*.04);
+  for(let i=0;i<3;i++){line(115-i*18,210,80-i*18,210,'#ffb2dc',5);line(92-i*18,198,80-i*18,210,'#ffb2dc',5);line(92-i*18,222,80-i*18,210,'#ffb2dc',5)}
+  if(hit)txt('STEP!',260,105,30,'#ffb2dc');
+  txt('合図で左へスワイプ！',260,342,18,'#fff');
+}
+function sceneNinja(local,post,hit,pulse){
+  // 5. 忍者の修行
+  rr(55,285,410,35,8,'#29333b');for(let i=0;i<5;i++)rr(80+i*85,245-(i%2)*20,40,40,5,'#263033');
+  const x=hit?lerp(150,395,clamp(post*1.6)):150;
+  if(hit)for(let i=1;i<4;i++)emo('🥷',x-i*45,215,78,0,.20);
+  emo('🥷',x,215,92,0,1);
+  for(let i=0;i<3;i++){line(385+i*17,200,430+i*17,200,'#a9ffc0',4)}
+  if(hit)txt('シュッ！',260,100,30,'#a9ffc0');
+  txt('合図で右へスワイプ！',260,342,18,'#fff');
+}
+function sceneSamurai(local,post,hit,pulse){
+  // 6. サムライ斬り
+  emo('🥷',150,230,105);
+  rr(360,145,28,160,8,'#7bb968');line(374,145,374,305,'#d9f0bd',3);
+  if(hit){line(188,255,420,150,'#fff4bc',10);line(188,255,420,150,'#ffffff',3);const cut=clamp((post-.15)*2);ctx.save();ctx.translate(374,210);ctx.rotate(.55*cut);rr(-14,-70,28,80,8,'#7bb968');ctx.restore();spark(374,205,post,'#fff4bc')}
+  else{const sw=lerp(-.8,-.2,clamp(local));ctx.save();ctx.translate(195,205);ctx.rotate(sw);line(0,0,125,0,'#dce8ef',8);ctx.restore()}
+  txt('右へ一閃！',260,342,18,'#fff');
+}
+function sceneDJ(local,post,hit,pulse,n){
+  // 7. DJスクラッチ
+  rr(78,145,364,165,24,'#171b2b');circle(260,225,82,'#0c0f18','#8990bd',4);circle(260,225,28,'#cf71ff');
+  const a=-n*Math.PI*1.7;line(260,225,260+Math.cos(a)*55,225+Math.sin(a)*55,'#ffffff55',4);
+  rr(365,160,18,118,8,'#2f3655');circle(374,hit?lerp(230,175,clamp(post)):215,12,'#78e5ff');
+  emo('🤚',hit?lerp(335,210,clamp(post)):335,170,54,0,.95);
+  if(hit)for(let i=0;i<5;i++)line(185-i*16,125,155-i*16,125,'#78e5ff',3);
+  txt('左へスクラッチ！',260,342,18,'#fff');
+}
+function sceneRocket(local,post,hit,pulse){
+  // 8. ロケット発射
+  rr(212,277,96,40,12,'#70798a');line(260,95,260,305,'#ffffff25',2);
+  const y=hit?lerp(245,50,clamp(post*1.35)):245;
+  emo('🚀',260,y,95,0,1);
+  const flame=hit?35+45*clamp(post):20+pulse*16;
+  ctx.beginPath();ctx.moveTo(240,y+48);ctx.lineTo(260,y+48+flame);ctx.lineTo(280,y+48);ctx.fillStyle='#ffb24f';ctx.fill();
+  if(hit)txt('LIFTOFF!',260,105,28,'#8fc6ff');
+  txt('上へスワイプして発射！',260,342,18,'#fff');
+}
+function sceneMole(local,post,hit,pulse){
+  // 9. もぐらたたき
+  for(let i=0;i<3;i++){ctx.fillStyle='#3b2a2a';ctx.beginPath();ctx.ellipse(125+i*135,280,62,25,0,0,Math.PI*2);ctx.fill()}
+  const pop=clamp(local*1.4);
+  const my=lerp(300,225,pop);
+  emo('🐹',260,my,78);
+  if(hit){const hy=lerp(105,210,clamp(post*2));emo('🔨',305,hy,82,-.25);if(post>.25)spark(260,230,post,'#ffd76e')}
+  else emo('🔨',330,115,72,-.55);
+  txt('出た瞬間にタップ！',260,342,18,'#fff');
+}
+function sceneBasket(local,post,hit,pulse){
+  // 10. バスケシュート
+  line(390,135,470,135,'#dbe6ee',8);rr(445,135,12,95,3,'#dbe6ee');ctx.strokeStyle='#ff875c';ctx.lineWidth=7;ctx.beginPath();ctx.ellipse(390,165,45,12,0,0,Math.PI*2);ctx.stroke();
+  emo('⛹️',130,255,90);
+  let bx=175,by=235;
+  if(hit){const p=clamp(post*1.25);bx=lerp(175,390,p);by=lerp(235,165,p)-145*Math.sin(Math.PI*p)}
+  emo('🏀',bx,by,48,hit?post*7:0);
+  if(hit&&post>.75)txt('SWISH!',305,105,30,'#ffbf71');
+  txt('上へスワイプしてシュート！',260,342,18,'#fff');
+}
+function sceneUmbrella(local,post,hit,pulse,n){
+  // 11. 雨よけパラソル
+  for(let i=0;i<16;i++){const x=(i*41+30)%500,y=((n*110+i*53)%330);line(x,y,x-8,y+22,'#8cd5ff',3)}
+  emo('🙂',260,250,70);
+  if(hit){emo('☂️',260,170,125,0,1);txt('SAFE!',260,100,28,'#a8e4ff')}
+  else{line(260,150,260,245,'#d6d7e5',8);rr(242,132,36,14,7,'#7f85a5')}
+  txt('下へスワイプして傘を開く！',260,342,18,'#fff');
+}
+function sceneMagic(local,post,hit,pulse){
+  // 12. 魔法の杖
+  emo('🧙',115,245,95);
+  const a=hit?lerp(-.6,.15,clamp(post*1.6)):-.55+.12*Math.sin(local*5);
+  ctx.save();ctx.translate(180,210);ctx.rotate(a);line(0,0,115,0,'#d4a76c',9);circle(118,0,9,'#fff2a6');ctx.restore();
+  emo('🔮',405,210,88);
+  if(hit){const p=clamp(post*1.5);line(290,205,lerp(300,390,p),205,'#e5a6ff',12);spark(390,205,post,'#e5a6ff');txt('MAGIC!',260,105,28,'#e7b7ff')}
+  txt('右へスワイプして魔法！',260,342,18,'#fff');
+}
+function sceneSurf(local,post,hit,pulse,n){
+  // 13. サーフジャンプ
+  ctx.fillStyle='#4dc1db';ctx.beginPath();ctx.moveTo(0,270);for(let x=0;x<=520;x+=20){ctx.lineTo(x,270+Math.sin(x*.035+n*.7)*22)}ctx.lineTo(520,340);ctx.lineTo(0,340);ctx.closePath();ctx.fill();
+  let y=245;if(hit)y=245-120*Math.sin(clamp(post)*Math.PI);
+  emo('🏄',260,y,100,hit?-.15*Math.sin(post*Math.PI):0);
+  if(hit)txt('AIR!',260,100,30,'#9cf4ff');
+  txt('上へスワイプして波を飛ぶ！',260,342,18,'#fff');
+}
+function sceneLeaves(local,post,hit,pulse,n){
+  // 14. 落ち葉キャッチ
+  rr(205,270,110,55,12,'#a46f42');rr(220,255,80,20,10,'#c99357');
+  for(let i=0;i<5;i++){const x=105+i*75+Math.sin(n+i)*18,y=80+((n*35+i*62)%170);emo(i%2?'🍂':'🍁',x,y,34,Math.sin(n+i)*.4,.75)}
+  let ly=lerp(90,245,clamp(local)),lx=265+Math.sin(local*4)*22;
+  if(hit){ly=lerp(245,290,clamp(post));lx=260}
+  emo('🍁',lx,ly,50,local*1.2);
+  if(hit&&post>.45)txt('CATCH!',260,105,28,'#ffd18a');
+  txt('下へスワイプして受け止める！',260,342,18,'#fff');
+}
+function sceneTaiko(local,post,hit,pulse){
+  // 15. 太鼓フィニッシュ
+  circle(260,225,105,'#7a3e35','#f0c788',12);circle(260,225,80,'#d66b54','#ffe1a5',6);circle(260,225,12,'#f8deb0');
+  const strike=hit?clamp(post*2):0;
+  const a1=lerp(-.9,-.15,strike),a2=lerp(.9,.15,strike);
+  ctx.save();ctx.translate(175,105);ctx.rotate(a1);line(0,0,125,0,'#f0d5a5',13);ctx.restore();
+  ctx.save();ctx.translate(345,105);ctx.rotate(a2);line(0,0,-125,0,'#f0d5a5',13);ctx.restore();
+  if(hit){circle(260,225,110+post*45,'#ffffff00','#ffdf72',6);txt('ドン！',260,100,34,'#ffdf72')}
+  txt('ビートに合わせてタップ！',260,342,18,'#fff');
+}
+function drawTaskScene(task,elapsed,n,pulse){
+  const startBeat=task.target-1;
+  const local=clamp(elapsed/beat-startBeat,0,2);
+  const post=clamp(local-1,0,1);
+  const hit=task.done&&task.result==='hit';
+  switch(task.name){
+    case 'もぐもぐモンスター':sceneMonster(local,post,hit,pulse);break;
+    case 'ハンマー工房':sceneHammer(local,post,hit,pulse);break;
+    case '宇宙キャッチ':sceneSpace(local,post,hit,pulse);break;
+    case 'ダンスステップ':sceneDance(local,post,hit,pulse);break;
+    case '忍者の修行':sceneNinja(local,post,hit,pulse);break;
+    case 'サムライ斬り':sceneSamurai(local,post,hit,pulse);break;
+    case 'DJスクラッチ':sceneDJ(local,post,hit,pulse,n);break;
+    case 'ロケット発射':sceneRocket(local,post,hit,pulse);break;
+    case 'もぐらたたき':sceneMole(local,post,hit,pulse);break;
+    case 'バスケシュート':sceneBasket(local,post,hit,pulse);break;
+    case '雨よけパラソル':sceneUmbrella(local,post,hit,pulse,n);break;
+    case '魔法の杖':sceneMagic(local,post,hit,pulse);break;
+    case 'サーフジャンプ':sceneSurf(local,post,hit,pulse,n);break;
+    case '落ち葉キャッチ':sceneLeaves(local,post,hit,pulse,n);break;
+    case '太鼓フィニッシュ':sceneTaiko(local,post,hit,pulse);break;
+  }
+}
+function draw(now,elapsed){
+  const n=Math.max(0,elapsed/musicBeat),pulse=Math.pow(1-(n%1),3),w=520,h=460;
+  ctx.clearRect(0,0,w,h);
+  commonBg(task,n,pulse);
+
+  if(elapsed<countInUnits*beat){
+    const count=Math.min(4,Math.floor(Math.max(0,elapsed/musicBeat))+1);
+    emo('🎵',260,170,95,Math.sin(n*3)*.06);
+    txt(String(count),260,285,92,'#ffdf72','center','950');
+    txt('1・2・3・4！ リズムを覚えよう',260,347,18,'#fff');
+    for(let i=0;i<4;i++)circle(182+i*52,410,Math.floor(n)%4===i?14+pulse*5:9,Math.floor(n)%4===i?'#ffdc72':'#ffffff42');
+    $('meter').style.width='0%';
+    return;
+  }
+
+  if(task){
+    drawTaskScene(task,elapsed,n,pulse);
+    cueFooter(task,elapsed,n,pulse);
+    const remaining=task.target*beat-elapsed;
+    $('meter').style.width=(Math.max(0,Math.min(100,100-Math.abs(remaining)/beat*100)))+'%';
+  }
+
+  if(feedback&&now<feedbackUntil){
+    rr(95,350,330,40,12,'#10172cee');
+    txt(feedback,260,377,20,feedback.startsWith('MISS')?'#ff8ea7':'#ffdf7b','center','900');
+  }
+  ctx.textAlign='start';
+}
+function loop(ms){
+  if(finished||transitioning)return;
+  const now=ms/1000,elapsed=musicElapsed();
+  if(elapsed>=0){
+    const b=Math.floor(elapsed/musicBeat);
+    beatPlayed=b;
+    if(elapsed>=countInUnits*beat){
+      const n=Math.floor((elapsed/beat-countInUnits)/2);
+      if(!task||n>round){
+        if(task&&!task.done)judge(false,99);
+        if(finished||transitioning){draw(now,elapsed);return}
+        newTask(n)
+      }
+      if(task&&!task.done&&elapsed>task.target*beat+.26)judge(false,99)
+    }
+  }
+  draw(now,elapsed);
+  raf=requestAnimationFrame(loop)
+}
+draw(0,0);
+})();
+</script>
+</body>
+</html>
